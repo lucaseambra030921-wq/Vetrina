@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vetrina Shop</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --tg-bg: var(--tg-theme-bg-color, #ffffff);
+            --tg-text: var(--tg-theme-text-color, #000000);
+            --tg-btn: var(--tg-theme-button-color, #248bcf);
+            --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+            --tg-hint: var(--tg-theme-hint-color, #999999);
+            --tg-secondary: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        }
+
+        body { 
+            font-family: -apple-system, sans-serif; 
+            margin: 0; padding: 0; 
+            color: var(--tg-text); 
+            background: var(--tg-secondary); 
+        }
+
+        .header { 
+            width: 100%; padding: 25px 0; text-align: center; 
+            background: var(--tg-bg); box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+        }
+        
+        .header img { max-width: 110px; border-radius: 15px; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
+        
+        .card { 
+            background: var(--tg-bg); border-radius: 16px; padding: 12px; 
+            text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.04); 
+            display: flex; flex-direction: column;
+        }
+
+        .photo-placeholder { 
+            width: 100%; aspect-ratio: 1/1; border-radius: 10px; 
+            background: #e0e0e0; display: flex; align-items: center; 
+            justify-content: center; font-size: 10px; font-weight: bold; 
+            color: #777; border: 2px dashed #bbb; margin-bottom: 10px;
+        }
+
+        .title { font-weight: 700; margin-bottom: 5px; font-size: 15px; height: 36px; display: flex; align-items: center; justify-content: center; }
+        
+        .portion-select {
+            width: 100%; padding: 8px; margin: 5px 0 10px 0; border-radius: 8px; 
+            border: 1px solid rgba(0,0,0,0.1); background: var(--tg-secondary); 
+            color: var(--tg-text); font-size: 13px;
+        }
+
+        .price-tag { color: var(--tg-btn); font-weight: 800; margin-bottom: 12px; font-size: 18px; }
+
+        .order-btn { 
+            background: var(--tg-btn); color: var(--tg-btn-text);
+            border: none; border-radius: 10px; padding: 12px 5px; width: 100%; 
+            font-weight: 700; cursor: pointer; font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="https://i.imgur.com/u5v0p5P.png" alt="Logo">
+        <h2 style="margin: 10px 0 0 0;">Catalogo Astro</h2>
+    </div>
+
+    <div class="grid" id="product-list"></div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const linkContatto = "https://t.me/cartiersantos09"; 
+
+        const prodotti = [
+            { id: 1, nome: 'Dry Work', opzioni: [
+                { etichetta: '25g', prezzo: 120 },
+                { etichetta: '50g', prezzo: 200 },
+                { etichetta: '100g', prezzo: 350 },
+                { etichetta: '500g', prezzo: 1600 },
+                { etichetta: '1000g', prezzo: 3100 }
+            ]},
+            { id: 2, nome: 'Frozen', opzioni: [
+                { etichetta: '25g', prezzo: 250 },
+                { etichetta: '50g', prezzo: 400 },
+                { etichetta: '100g', prezzo: 750 },
+                { etichetta: '500g', prezzo: 3000 },
+                { etichetta: '1000g', prezzo: 5500 }
+            ]},
+            { id: 3, nome: 'Cali Weed', opzioni: [
+                { etichetta: '25g', prezzo: 250 },
+                { etichetta: '50g', prezzo: 450 },
+                { etichetta: '100g', prezzo: 800 }
+            ]}
+        ];
+
+        function render() {
+            const list = document.getElementById('product-list');
+            prodotti.forEach(p => {
+                let opts = '';
+                p.opzioni.forEach((opt, index) => {
+                    opts += `<option value="${index}">${opt.etichetta} - ${opt.prezzo}€</option>`;
+                });
+
+                list.innerHTML += `
+                    <div class="card">
+                        <div class="photo-placeholder">INSERISCI FOTO</div>
+                        <div class="title">${p.nome}</div>
+                        <select class="portion-select" id="sel-${p.id}" onchange="updatePrice(${p.id})">
+                            ${opts}
+                        </select>
+                        <div class="price-tag" id="pr-${p.id}">${p.opzioni[0].prezzo}€</div>
+                        <button class="order-btn" onclick="ordina(${p.id})">ORDINA ORA</button>
+                    </div>`;
+            });
+        }
+
+        function updatePrice(id) {
+            const p = prodotti.find(x => x.id === id);
+            const s = document.getElementById(`sel-${id}`);
+            document.getElementById(`pr-${id}`).innerText = p.opzioni[s.value].prezzo + "€";
+            tg.HapticFeedback.selectionChanged();
+        }
+
+        function ordina(id) {
+            const p = prodotti.find(x => x.id === id);
+            const s = document.getElementById(`sel-${id}`);
+            const o = p.opzioni[s.value];
+            const msg = `🚀 NUOVO ORDINE\n------------------\nProdotto: ${p.nome}\nQuantità: ${o.etichetta}\nTotale: ${o.prezzo}€`;
+            
+            tg.showConfirm("Vuoi procedere con l'ordine?", (confirmed) => {
+                if (confirmed) tg.openTelegramLink(linkContatto + "?text=" + encodeURIComponent(msg));
+            });
+        }
+
+        render();
+    </script>
+</body>
+</html>
